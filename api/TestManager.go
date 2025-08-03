@@ -14,8 +14,8 @@ import (
 
 func TestManager(e *echo.Group) {
 	e.POST("/tests", createTest)
-	// e.GET("/tests/:id", getTest)
-	// e.PUT("/tests/:id", updateTest)
+	e.GET("/tests/:id", getTest)
+	e.PUT("/tests/:id", updateTest)
 	// e.DELETE("/tests/:id", deleteTest)
 	// e.GET("/tests", listTests)
 }
@@ -64,4 +64,32 @@ func createTest(c echo.Context) error {
 	}
 
 	return c.JSON(200, testUtils.FormattedResponse(test))
+}
+
+func getTest(c echo.Context) error {
+	id := c.Param("id")
+
+	return c.String(200, "Test retrieval not implemented yet\n"+id)
+
+}
+
+func updateTest(c echo.Context) error {
+	id := c.Param("id")
+
+	if id == "" {
+		return c.JSON(400, map[string]string{"error": "Test ID is required"})
+	}
+
+	var testDto viewmodels.TestDto
+	if err := c.Bind(&testDto); err != nil {
+		return c.JSON(400, map[string]string{"error": "Invalid input"})
+	}
+
+	if testDto.Name == "" || testDto.APIEndpoint == "" {
+		return c.JSON(400, map[string]string{"error": "Name and APIEndpoint are required"})
+	} else if testDto.APIEndpoint == "http://localhost:8080" {
+		return c.JSON(400, map[string]string{"error": "APIEndpoint cannot be this API's endpoint"})
+	}
+
+	return c.String(200, "Update is not implemented yet")
 }
