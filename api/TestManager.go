@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/labstack/echo/v4"
+	"gorm.io/datatypes"
 )
 
 func TestManager(e *echo.Group) {
@@ -44,7 +45,7 @@ func createTest(c echo.Context) error {
 		return c.JSON(500, map[string]string{"error": "Failed to read response body"})
 	}
 
-	var responseBody any
+	var responseBody datatypes.JSON
 	err = json.Unmarshal(body, &responseBody)
 	if err != nil {
 		return c.JSON(500, map[string]string{
