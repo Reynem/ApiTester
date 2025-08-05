@@ -1,12 +1,14 @@
 package api
 
 import (
+	database "apitester/database"
 	"apitester/models"
 	testUtils "apitester/utils"
 	viewmodels "apitester/view_models"
 	"encoding/json"
 	"io"
 	"net/http"
+	"strconv"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -64,13 +66,32 @@ func createTest(c echo.Context) error {
 		StatusCode:  resp.StatusCode,
 	}
 
+	database := database.GetDB()
+	if err := database.Create(&test).Error; err != nil {
+		return c.JSON(500, map[string]string{"error": "Failed to save test todatabase"})
+	}
+
 	return c.JSON(200, testUtils.FormattedResponse(test))
 }
 
 func getTest(c echo.Context) error {
 	id := c.Param("id")
 
-	return c.String(200, "Test retrieval not implemented yet\n"+id)
+	if id == "" {
+		return c.JSON(400, map[string]string{"error": "Test ID is required"})
+	}
+
+	id_int, err := strconv.Atoi(id)
+	if err != nil {
+		return c.JSON(400, map[string]string{"error": "Invalid Test ID"})
+	}
+
+	test, err := database.GetTestByID(id_int)
+	if err != nil {
+		return c.JSON(404, map[string]string{"error": "Test not found"})
+	}
+
+	return c.JSON(200, testUtils.FormattedResponse(*test))
 
 }
 
