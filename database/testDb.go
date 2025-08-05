@@ -23,3 +23,29 @@ func InitDatabase() error {
 
 	return nil
 }
+
+func GetDB() *gorm.DB {
+	return DB
+}
+
+func CloseDatabase() error {
+	sqlDB, err := DB.DB()
+	if err != nil {
+		return err
+	}
+	return sqlDB.Close()
+}
+
+func GetTestByID(id int) (*models.Test, error) {
+	var test models.Test
+	result := DB.First(&test, id)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+	return &test, nil
+}
+
+func CreateTest(test *models.Test) error {
+	result := DB.Create(test)
+	return result.Error
+}

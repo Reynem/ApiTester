@@ -19,6 +19,8 @@ func main() {
 		return
 	}
 
+	defer database.CloseDatabase()
+
 	if err := e.Start(":8080"); err != nil {
 		fmt.Printf("Error starting server: %v\n", err)
 	} else {
