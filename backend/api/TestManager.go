@@ -25,32 +25,42 @@ func TestManager(e *echo.Group) {
 
 func createTest(c echo.Context) error {
 	var testDto viewmodels.TestDto
-
 	if err := c.Bind(&testDto); err != nil {
 		return c.JSON(400, map[string]string{"error": "Invalid input"})
 	}
-
 	if testDto.Name == "" || testDto.APIEndpoint == "" {
 		return c.JSON(400, map[string]string{"error": "Name and APIEndpoint are required"})
-	} else if testDto.APIEndpoint == "http://localhost:8080" {
+	}
+	if testDto.APIEndpoint == "http://localhost:8080" {
 		return c.JSON(400, map[string]string{"error": "APIEndpoint cannot be this API's endpoint"})
 	}
 
-	resp, err := http.Get(testDto.APIEndpoint)
+	// TODO: Add normal URL validation (schemes, private IP, loopback)
+	client := &http.Client{Timeout: 10 * time.Second}
+
+	req, err := http.NewRequest(http.MethodGet, testDto.APIEndpoint, nil)
 	if err != nil {
-		return c.JSON(500, map[string]string{"error": "Failed to make API request"})
+		return c.JSON(400, map[string]string{"error": "Invalid APIEndpoint"})
+	}
+
+	// TODO: Add headers and parameters to the request
+	// for k, v := range testDto.Headers { req.Header.Set(k, v) }
+
+	resp, err := client.Do(req)
+	if err != nil {
+		return c.JSON(502, map[string]string{"error": "Failed to make API request"})
 	}
 	defer resp.Body.Close()
 
-	body, err := io.ReadAll(resp.Body)
+	const max = 1 << 20 // 1MB
+	body, err := io.ReadAll(io.LimitReader(resp.Body, max))
 	if err != nil {
 		return c.JSON(500, map[string]string{"error": "Failed to read response body"})
 	}
 
 	if !json.Valid(body) {
-		return c.JSON(400, map[string]string{"error": "Response body is not valid JSON"})
+		return c.JSON(400, map[string]string{"error": "Response is not valid JSON"})
 	}
-
 	responseBody := datatypes.JSON(body)
 
 	test := models.Test{
@@ -59,17 +69,16 @@ func createTest(c echo.Context) error {
 		Parameters:  testDto.Parameters,
 		Headers:     testDto.Headers,
 		Body:        testDto.Body,
-		CreatedAt:   time.Now(),
 		Response:    responseBody,
 		StatusCode:  resp.StatusCode,
 	}
 
 	db := database.GetDB()
 	if err := db.Create(&test).Error; err != nil {
-		return c.JSON(500, map[string]string{"error": "Failed to save test todatabase"})
+		return c.JSON(500, map[string]string{"error": "Failed to save test to database"})
 	}
 
-	return c.JSON(200, testUtils.FormattedResponse(test))
+	return c.JSON(http.StatusCreated, testUtils.FormattedResponse(test))
 }
 
 func getTest(c echo.Context) error {
