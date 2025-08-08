@@ -45,7 +45,31 @@ func GetTestByID(id int) (*models.Test, error) {
 	return &test, nil
 }
 
+func GetTestByIDAsync(id int) <-chan AsyncTestResult {
+	resultChan := make(chan AsyncTestResult)
+
+	go func() {
+		defer close(resultChan)
+
+		test, err := GetTestByID(id)
+
+		result := AsyncTestResult{
+			Test: test,
+			Error:  err,
+		}
+
+		resultChan <- result
+	}()
+
+	return resultChan
+}
+
 func CreateTest(test *models.Test) error {
 	result := DB.Create(test)
 	return result.Error
+}
+
+type AsyncTestResult struct {
+	Test *models.Test
+	Error  error
 }

@@ -86,12 +86,12 @@ func getTest(c echo.Context) error {
 		return c.JSON(400, map[string]string{"error": "Invalid Test ID"})
 	}
 
-	test, err := database.GetTestByID(id_int)
-	if err != nil {
+	test := <- database.GetTestByIDAsync(id_int)
+	if test.Error != nil {
 		return c.JSON(404, map[string]string{"error": "Test not found"})
 	}
 
-	return c.JSON(200, testUtils.FormattedResponse(*test))
+	return c.JSON(200, testUtils.FormattedResponse(*test.Test))
 
 }
 
