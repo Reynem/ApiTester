@@ -45,31 +45,36 @@ func GetTestByID(id int) (*models.Test, error) {
 	return &test, nil
 }
 
-func GetTestByIDAsync(id int) <-chan AsyncTestResult {
-	resultChan := make(chan AsyncTestResult)
+// func GetTestByIDAsync(id int) <-chan AsyncTestResult {
+// 	resultChan := make(chan AsyncTestResult)
 
-	go func() {
-		defer close(resultChan)
+// 	go func() {
+// 		defer close(resultChan)
 
-		test, err := GetTestByID(id)
+// 		test, err := GetTestByID(id)
 
-		result := AsyncTestResult{
-			Test: test,
-			Error:  err,
-		}
+// 		result := AsyncTestResult{
+// 			Test:  test,
+// 			Error: err,
+// 		}
 
-		resultChan <- result
-	}()
+// 		resultChan <- result
+// 	}()
 
-	return resultChan
-}
+// 	return resultChan
+// }
 
 func CreateTest(test *models.Test) error {
 	result := DB.Create(test)
 	return result.Error
 }
 
+func UpdateTest(test *models.Test) error {
+	result := DB.Save(test)
+	return result.Error
+}
+
 type AsyncTestResult struct {
-	Test *models.Test
-	Error  error
+	Test  *models.Test
+	Error error
 }

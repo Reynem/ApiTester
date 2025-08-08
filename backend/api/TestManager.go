@@ -47,13 +47,11 @@ func createTest(c echo.Context) error {
 		return c.JSON(500, map[string]string{"error": "Failed to read response body"})
 	}
 
-	var responseBody datatypes.JSON
-	err = json.Unmarshal(body, &responseBody)
-	if err != nil {
-		return c.JSON(500, map[string]string{
-			"error":   "Failed to parse response body",
-			"details": err.Error()})
+	if !json.Valid(body) {
+		return c.JSON(400, map[string]string{"error": "Response body is not valid JSON"})
 	}
+
+	responseBody := datatypes.JSON(body)
 
 	test := models.Test{
 		Name:        testDto.Name,
@@ -66,8 +64,8 @@ func createTest(c echo.Context) error {
 		StatusCode:  resp.StatusCode,
 	}
 
-	database := database.GetDB()
-	if err := database.Create(&test).Error; err != nil {
+	db := database.GetDB()
+	if err := db.Create(&test).Error; err != nil {
 		return c.JSON(500, map[string]string{"error": "Failed to save test todatabase"})
 	}
 
@@ -86,12 +84,12 @@ func getTest(c echo.Context) error {
 		return c.JSON(400, map[string]string{"error": "Invalid Test ID"})
 	}
 
-	test := <- database.GetTestByIDAsync(id_int)
-	if test.Error != nil {
+	test, err := database.GetTestByID(id_int)
+	if err != nil {
 		return c.JSON(404, map[string]string{"error": "Test not found"})
 	}
 
-	return c.JSON(200, testUtils.FormattedResponse(*test.Test))
+	return c.JSON(200, testUtils.FormattedResponse(*test))
 
 }
 
@@ -113,5 +111,26 @@ func updateTest(c echo.Context) error {
 		return c.JSON(400, map[string]string{"error": "APIEndpoint cannot be this API's endpoint"})
 	}
 
-	return c.String(200, "Update is not implemented yet")
+	id_int, err := strconv.Atoi(id)
+	if err != nil {
+		return c.JSON(400, map[string]string{"error": "Invalid Test ID"})
+	}
+
+	existingTest, err := database.GetTestByID(id_int)
+	if err != nil {
+		return c.JSON(404, map[string]string{"error": "Test not found"})
+	}
+
+	existingTest.Name = testDto.Name
+	existingTest.APIEndpoint = testDto.APIEndpoint
+	existingTest.Parameters = testDto.Parameters
+	existingTest.Headers = testDto.Headers
+	existingTest.Body = testDto.Body
+
+	err = database.UpdateTest(existingTest)
+	if err != nil {
+		return c.JSON(500, map[string]string{"error": "Failed to update test"})
+	}
+
+	return c.JSON(200, testUtils.FormattedResponse(*existingTest))
 }
