@@ -29,6 +29,9 @@ func GetDB() *gorm.DB {
 }
 
 func CloseDatabase() error {
+	if DB == nil {
+		return nil
+	}
 	sqlDB, err := DB.DB()
 	if err != nil {
 		return err

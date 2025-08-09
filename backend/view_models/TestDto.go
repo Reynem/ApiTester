@@ -3,9 +3,10 @@ package viewmodels
 import "gorm.io/datatypes"
 
 type TestDto struct {
-	Name        string         `json:"name"`
-	APIEndpoint string         `json:"api_endpoint"`
-	Parameters  string         `json:"parameters"`
-	Headers     datatypes.JSON `json:"headers"`
-	Body        datatypes.JSON `json:"body"`
+	Name        string            `json:"name"`
+	APIEndpoint string            `json:"api_endpoint"`
+	Method      string            `json:"method"`
+	Parameters  map[string]string `json:"parameters"`
+	Headers     map[string]string `json:"headers"`
+	Body        datatypes.JSON    `json:"body"`
 }
