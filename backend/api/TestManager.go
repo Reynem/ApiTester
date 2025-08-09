@@ -5,10 +5,12 @@ import (
 	"apitester/models"
 	testUtils "apitester/utils"
 	viewmodels "apitester/view_models"
+	"bytes"
 	"encoding/json"
 	"io"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -31,20 +33,43 @@ func createTest(c echo.Context) error {
 	if testDto.Name == "" || testDto.APIEndpoint == "" {
 		return c.JSON(400, map[string]string{"error": "Name and APIEndpoint are required"})
 	}
-	if testDto.APIEndpoint == "http://localhost:8080" {
-		return c.JSON(400, map[string]string{"error": "APIEndpoint cannot be this API's endpoint"})
+
+	if err := testUtils.ValidateAPIEndpoint(testDto.APIEndpoint); err != nil {
+		return c.JSON(400, map[string]string{"error": err.Error()})
 	}
 
-	// TODO: Add normal URL validation (schemes, private IP, loopback)
 	client := &http.Client{Timeout: 10 * time.Second}
 
-	req, err := http.NewRequest(http.MethodGet, testDto.APIEndpoint, nil)
-	if err != nil {
-		return c.JSON(400, map[string]string{"error": "Invalid APIEndpoint"})
+	method := strings.ToUpper(testDto.Method)
+	var rbody io.Reader
+
+	if testDto.Body != nil {
+		rbody = bytes.NewReader(testDto.Body)
 	}
 
-	// TODO: Add headers and parameters to the request
-	// for k, v := range testDto.Headers { req.Header.Set(k, v) }
+	if !validMethods[method] {
+		return c.JSON(400, map[string]string{"error": "Invalid HTTP method"})
+	}
+
+	if method == http.MethodGet {
+		rbody = nil // GET requests should not have a body
+	}
+
+	req, err := http.NewRequest(method, testDto.APIEndpoint, rbody)
+	if err != nil {
+		return c.JSON(400, map[string]string{"error": err.Error()})
+	}
+
+	for key, value := range testDto.Headers {
+		req.Header.Add(key, value)
+	}
+
+	q := req.URL.Query()
+	for key, value := range testDto.Parameters {
+		q.Add(key, value)
+	}
+
+	req.URL.RawQuery = q.Encode()
 
 	resp, err := client.Do(req)
 	if err != nil {
@@ -63,11 +88,21 @@ func createTest(c echo.Context) error {
 	}
 	responseBody := datatypes.JSON(body)
 
+	parameters, err := json.Marshal(testDto.Parameters)
+	if err != nil {
+		return c.JSON(500, map[string]string{"error": "Failed to marshal parameters"})
+	}
+
+	headers, err := json.Marshal(testDto.Headers)
+	if err != nil {
+		return c.JSON(500, map[string]string{"error": "Failed to marshal headers"})
+	}
+
 	test := models.Test{
 		Name:        testDto.Name,
 		APIEndpoint: testDto.APIEndpoint,
-		Parameters:  testDto.Parameters,
-		Headers:     testDto.Headers,
+		Parameters:  parameters,
+		Headers:     headers,
 		Body:        testDto.Body,
 		Response:    responseBody,
 		StatusCode:  resp.StatusCode,
@@ -130,10 +165,20 @@ func updateTest(c echo.Context) error {
 		return c.JSON(404, map[string]string{"error": "Test not found"})
 	}
 
+	parameters, err := json.Marshal(testDto.Parameters)
+	if err != nil {
+		return c.JSON(500, map[string]string{"error": "Failed to marshal parameters"})
+	}
+
+	headers, err := json.Marshal(testDto.Headers)
+	if err != nil {
+		return c.JSON(500, map[string]string{"error": "Failed to marshal headers"})
+	}
+
 	existingTest.Name = testDto.Name
 	existingTest.APIEndpoint = testDto.APIEndpoint
-	existingTest.Parameters = testDto.Parameters
-	existingTest.Headers = testDto.Headers
+	existingTest.Parameters = parameters
+	existingTest.Headers = headers
 	existingTest.Body = testDto.Body
 
 	err = database.UpdateTest(existingTest)
@@ -142,4 +187,11 @@ func updateTest(c echo.Context) error {
 	}
 
 	return c.JSON(200, testUtils.FormattedResponse(*existingTest))
+}
+
+var validMethods = map[string]bool{
+	http.MethodGet:    true,
+	http.MethodPost:   true,
+	http.MethodPut:    true,
+	http.MethodDelete: true,
 }
