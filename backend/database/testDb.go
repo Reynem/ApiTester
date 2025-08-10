@@ -48,6 +48,21 @@ func GetTestByID(id int) (*models.Test, error) {
 	return &test, nil
 }
 
+func GetAllTests() ([]models.Test, error) {
+	var tests []models.Test
+	result := DB.Find(&tests)
+
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		return tests, nil // No tests found
+	}
+
+	return tests, nil
+}
+
 // func GetTestByIDAsync(id int) <-chan AsyncTestResult {
 // 	resultChan := make(chan AsyncTestResult)
 

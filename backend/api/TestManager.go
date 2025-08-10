@@ -20,9 +20,24 @@ import (
 func TestManager(e *echo.Group) {
 	e.POST("/tests", createTest)
 	e.GET("/tests/:id", getTest)
+	e.GET("/tests", getAllTests)
 	e.PUT("/tests/:id", updateTest)
 	// e.DELETE("/tests/:id", deleteTest)
 	// e.GET("/tests", listTests)
+}
+
+func getAllTests(c echo.Context) error {
+	tests, err := database.GetAllTests()
+	if err != nil {
+		return c.JSON(500, map[string]string{"error": "Failed to retrieve tests"})
+	}
+
+	var testResponses = make([]viewmodels.TestResponseDto, len(tests))
+	for i, test := range tests {
+		testResponses[i] = testUtils.FormattedResponse(test)
+	}
+
+	return c.JSON(200, testResponses)
 }
 
 func createTest(c echo.Context) error {
