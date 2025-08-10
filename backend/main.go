@@ -12,14 +12,18 @@ func main() {
 	fmt.Println("API Tester is running...")
 	e := echo.New()
 	testManagerGroup := e.Group("/api")
-	api.TestManager(testManagerGroup)
 
-	if err := database.InitDatabase(); err != nil {
+	sqliteDB, err := database.InitDatabase()
+	if err != nil {
 		fmt.Printf("Error initializing database: %v\n", err)
 		return
 	}
 
-	defer database.CloseDatabase()
+	db := database.NewTestRepository(sqliteDB)
+
+	defer db.CloseDatabase()
+
+	api.TestManager(testManagerGroup, db)
 
 	if err := e.Start(":8080"); err != nil {
 		fmt.Printf("Error starting server: %v\n", err)

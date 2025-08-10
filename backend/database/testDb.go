@@ -7,50 +7,56 @@ import (
 	"gorm.io/gorm"
 )
 
-var DB *gorm.DB
+type TestRepository struct {
+	db *gorm.DB
+}
 
-func InitDatabase() error {
+func NewTestRepository(db *gorm.DB) *TestRepository {
+	return &TestRepository{db: db}
+}
+
+func InitDatabase() (*gorm.DB, error) {
 	var err error
-	DB, err = gorm.Open(sqlite.Open("test.db"), &gorm.Config{})
+	db, err := gorm.Open(sqlite.Open("test.db"), &gorm.Config{})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	err = DB.AutoMigrate(&models.Test{})
+	err = db.AutoMigrate(&models.Test{})
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return db, nil
 }
 
-func GetDB() *gorm.DB {
-	return DB
+func (r *TestRepository) GetDB() *gorm.DB {
+	return r.db
 }
 
-func CloseDatabase() error {
-	if DB == nil {
+func (r *TestRepository) CloseDatabase() error {
+	if r.db == nil {
 		return nil
 	}
-	sqlDB, err := DB.DB()
+	sqlDB, err := r.db.DB()
 	if err != nil {
 		return err
 	}
 	return sqlDB.Close()
 }
 
-func GetTestByID(id int) (*models.Test, error) {
+func (r *TestRepository) GetTestByID(id int) (*models.Test, error) {
 	var test models.Test
-	result := DB.First(&test, id)
+	result := r.db.First(&test, id)
 	if result.Error != nil {
 		return nil, result.Error
 	}
 	return &test, nil
 }
 
-func GetAllTests() ([]models.Test, error) {
+func (r *TestRepository) GetAllTests() ([]models.Test, error) {
 	var tests []models.Test
-	result := DB.Find(&tests)
+	result := r.db.Find(&tests)
 
 	if result.Error != nil {
 		return nil, result.Error
@@ -82,17 +88,12 @@ func GetAllTests() ([]models.Test, error) {
 // 	return resultChan
 // }
 
-func CreateTest(test *models.Test) error {
-	result := DB.Create(test)
+func (r *TestRepository) CreateTest(test *models.Test) error {
+	result := r.db.Create(test)
 	return result.Error
 }
 
-func UpdateTest(test *models.Test) error {
-	result := DB.Save(test)
+func (r *TestRepository) UpdateTest(test *models.Test) error {
+	result := r.db.Save(test)
 	return result.Error
-}
-
-type AsyncTestResult struct {
-	Test  *models.Test
-	Error error
 }
