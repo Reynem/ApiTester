@@ -3,17 +3,16 @@ import { CommonModule } from '@angular/common';
 import { MatTableModule } from '@angular/material/table';
 import { MatButtonModule } from '@angular/material/button';
 import { MatCardModule } from '@angular/material/card';
-import { MatIconModule } from '@angular/material/icon'; // <-- Импорт для иконок
-import { MatChipsModule } from '@angular/material/chips'; // <-- Импорт для чипов
-import { MatToolbarModule } from '@angular/material/toolbar'; // <-- Импорт для тулбара
-import { animate, state, style, transition, trigger } from '@angular/animations'; // <-- Импорт для анимаций
+import { MatIconModule } from '@angular/material/icon'; 
+import { MatChipsModule } from '@angular/material/chips';
+import { MatToolbarModule } from '@angular/material/toolbar';
+import { animate, state, style, transition, trigger } from '@angular/animations'; 
 
 import { TestService, TestResponseDto } from './test.service';
 
 @Component({
   selector: 'app-root',
   standalone: true,
-  // Добавляем новые модули в imports
   imports: [
     CommonModule,
     MatTableModule,
@@ -25,7 +24,6 @@ import { TestService, TestResponseDto } from './test.service';
   ],
   templateUrl: './app.html',
   styleUrls: ['./app.css'],
-  // Добавляем анимацию для раскрытия строки
   animations: [
     trigger('detailExpand', [
       state('collapsed', style({ height: '0px', minHeight: '0', visibility: 'hidden' })),
@@ -35,7 +33,6 @@ import { TestService, TestResponseDto } from './test.service';
   ],
 })
 export class App implements OnInit {
-  // Убираем 'response' из основных колонок, так как это теперь кнопка
   displayedColumns = ['name', 'api_endpoint', 'status_code', 'created_at', 'actions'];
   tests = signal<TestResponseDto[]>([]);
   expandedTest = signal<TestResponseDto | null>(null);
@@ -48,12 +45,10 @@ export class App implements OnInit {
     });
   }
 
-  // Логика переключения остается прежней
   toggleExpand(test: TestResponseDto) {
     this.expandedTest.set(this.expandedTest() === test ? null : test);
   }
 
-  // Функция для форматирования JSON
   formatJson(jsonData: any): string {
     try {
       return JSON.stringify(jsonData, null, 2);
@@ -62,16 +57,15 @@ export class App implements OnInit {
     }
   }
 
-  // Вспомогательная функция для цвета чипа в зависимости от статуса
   getStatusChipColor(statusCode: number): 'primary' | 'accent' | 'warn' {
     if (statusCode >= 200 && statusCode < 300) {
-      return 'primary'; // Зеленый (или основной цвет темы) для успешных
+      return 'primary'; 
     }
     if (statusCode >= 400 && statusCode < 500) {
-      return 'accent'; // Оранжевый/желтый для ошибок клиента
+      return 'accent'; 
     }
     if (statusCode >= 500) {
-      return 'warn'; // Красный для ошибок сервера
+      return 'warn'; 
     }
     return 'primary';
   }

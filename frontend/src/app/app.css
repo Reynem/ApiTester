@@ -24,7 +24,7 @@ table {
   padding: 16px;
   background-color: #fafafa;
   border-top: 1px solid rgba(0,0,0,.12);
-  overflow-x: auto; /* Добавить прокрутку */
+  overflow-x: auto; 
 }
 
 pre {
@@ -33,12 +33,12 @@ pre {
   border-radius: 4px;
   white-space: pre-wrap;
   word-wrap: break-word;
-  word-break: break-word; /* Добавить это */
+  word-break: break-word; 
   font-family: 'Courier New', Courier, monospace;
   font-size: 14px;
   max-height: 400px;
   overflow-y: auto;
-  overflow-x: auto; /* На всякий случай */
+  overflow-x: auto;
 }
 
 code {
