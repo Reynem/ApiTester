@@ -24,7 +24,7 @@ func TestManager(e *echo.Group, repo *database.TestRepository) {
 	e.GET("/tests/:id", h.getTest)
 	e.GET("/tests", h.getAllTests)
 	e.PUT("/tests/:id", h.updateTest)
-	// e.DELETE("/tests/:id", deleteTest)
+	e.DELETE("/tests/:id", h.deleteTest)
 	// e.GET("/tests", listTests)
 }
 
@@ -210,6 +210,25 @@ func (h *Handler) updateTest(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, testUtils.FormattedResponse(*existingTest))
+}
+
+func (h *Handler) deleteTest(c echo.Context) error {
+	id := c.Param("id")
+
+	if id == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Test ID is required"})
+	}
+
+	id_int, err := strconv.Atoi(id)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid Test ID"})
+	}
+
+	if err = h.repo.DeleteTest(id_int); err != nil {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Fail while deleting test"})
+	}
+
+	return c.JSON(http.StatusOK, map[string]string{"result": "Test was deleted successfully"})
 }
 
 var validMethods = map[string]bool{

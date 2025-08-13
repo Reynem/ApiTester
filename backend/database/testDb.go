@@ -97,3 +97,8 @@ func (r *TestRepository) UpdateTest(test *models.Test) error {
 	result := r.db.Save(test)
 	return result.Error
 }
+
+func (r *TestRepository) DeleteTest(id int) error {
+	result := r.db.Delete(&models.Test{}, id)
+	return result.Error
+}
