@@ -1,6 +1,16 @@
 <template>
   <div class="request-form">
     <div class="request-header">
+      <!-- Поле для имени теста -->
+      <div class="test-name">
+        <input 
+          v-model="testName"
+          type="text" 
+          placeholder="Test name" 
+          class="test-name-input"
+        />
+      </div>
+      
       <div class="method-url">
         <select v-model="method" class="method-select">
           <option>GET</option>
@@ -19,8 +29,10 @@
       </div>
       
       <div class="request-actions">
-        <button @click="sendRequest" class="send-btn">
-          <span>📤</span> Send
+        <button @click="sendRequest" class="send-btn" :disabled="loading">
+          <span v-if="loading">⏱️</span>
+          <span v-else>📤</span>
+          {{ loading ? 'Sending...' : 'Send' }}
         </button>
         <button @click="saveRequest" class="save-btn">
           <span>💾</span> Save
@@ -42,6 +54,13 @@
         @click="activeTab = 'body'"
       >
         Body
+      </button>
+      <button 
+        class="tab-btn"
+        :class="{ active: activeTab === 'params' }"
+        @click="activeTab = 'params'"
+      >
+        Parameters
       </button>
     </div>
     
@@ -87,20 +106,53 @@
           class="body-textarea"
         ></textarea>
       </div>
+
+      <!-- Parameters Section -->
+      <div v-show="activeTab === 'params'" class="params-section">
+        <div class="section-header">
+          <span class="section-title">Query Parameters</span>
+          <button @click="addParam" class="add-btn">+ Add Parameter</button>
+        </div>
+        
+        <div class="params-list">
+          <div 
+            v-for="(param, index) in params" 
+            :key="index"
+            class="param-row"
+          >
+            <input 
+              v-model="param.key"
+              type="text" 
+              placeholder="Key"
+              class="param-input"
+            />
+            <input 
+              v-model="param.value"
+              type="text" 
+              placeholder="Value"
+              class="param-input"
+            />
+            <button @click="removeParam(index)" class="remove-btn">×</button>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from 'vue'
+import { ref, defineEmits } from 'vue'
 
+const emit = defineEmits(['requestSent'])
+
+const testName = ref('')
 const method = ref('GET')
 const url = ref('')
 const activeTab = ref('headers')
-const headers = ref([
-  { key: '', value: '' }
-])
+const headers = ref([{ key: '', value: '' }])
 const body = ref('')
+const params = ref([{ key: '', value: '' }])
+const loading = ref(false)
 
 const addHeader = () => {
   headers.value.push({ key: '', value: '' })
@@ -110,216 +162,100 @@ const removeHeader = (index) => {
   headers.value.splice(index, 1)
 }
 
-const sendRequest = () => {
-  console.log('Отправка запроса:', {
-    method: method.value,
-    url: url.value,
-    headers: headers.value.filter(h => h.key && h.value),
-    body: body.value
-  })
+const addParam = () => {
+  params.value.push({ key: '', value: '' })
+}
+
+const removeParam = (index) => {
+  params.value.splice(index, 1)
+}
+
+const sendRequest = async () => {
+  if (!testName.value.trim()) {
+    alert('Please enter a test name')
+    return
+  }
+
+  if (!url.value.trim()) {
+    alert('Please enter a URL')
+    return
+  }
+
+  loading.value = true
+
+  try {
+    // Формируем данные для отправки
+    const requestData = {
+      name: testName.value,
+      api_endpoint: url.value,
+      method: method.value,
+      parameters: {},
+      headers: {},
+      body: body.value ? JSON.parse(body.value) : null
+    }
+
+    // Добавляем параметры
+    params.value.forEach(param => {
+      if (param.key && param.value) {
+        requestData.parameters[param.key] = param.value
+      }
+    })
+
+    // Добавляем заголовки
+    headers.value.forEach(header => {
+      if (header.key && header.value) {
+        requestData.headers[header.key] = header.value
+      }
+    })
+
+    const response = await fetch('http://localhost:8080/api/tests', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestData)
+    })
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`)
+    }
+
+    const result = await response.json()
+    console.log('Request sent successfully:', result)
+    
+    // Отправляем результат в родительский компонент
+    emit('requestSent', result)
+    
+    // Сбрасываем форму (опционально)
+    // resetForm()
+    
+  } catch (error) {
+    console.error('Error sending request:', error)
+    alert('Error sending request: ' + error.message)
+  } finally {
+    loading.value = false
+  }
 }
 
 const saveRequest = () => {
-  console.log('Сохранение запроса')
+  console.log('Сохранение запроса:', {
+    testName: testName.value,
+    method: method.value,
+    url: url.value,
+    headers: headers.value.filter(h => h.key && h.value),
+    body: body.value,
+    params: params.value.filter(p => p.key && p.value)
+  })
+}
+
+const resetForm = () => {
+  testName.value = ''
+  method.value = 'GET'
+  url.value = ''
+  headers.value = [{ key: '', value: '' }]
+  body.value = ''
+  params.value = [{ key: '', value: '' }]
 }
 </script>
 
-<style scoped>
-.request-form {
-  background: white;
-  border-bottom: 1px solid #e1e5e9;
-  padding: 20px;
-}
-
-.request-header {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-}
-
-.method-url {
-  display: flex;
-  flex: 1;
-  gap: 8px;
-  min-width: 300px;
-}
-
-.method-select {
-  padding: 8px 12px;
-  border: 1px solid #e1e5e9;
-  border-radius: 4px;
-  background: white;
-  font-size: 14px;
-  cursor: pointer;
-}
-
-.method-select:focus {
-  outline: none;
-  border-color: #0366d6;
-  box-shadow: 0 0 0 2px rgba(3, 102, 214, 0.2);
-}
-
-.url-input {
-  flex: 1;
-  padding: 8px 12px;
-  border: 1px solid #e1e5e9;
-  border-radius: 4px;
-  font-size: 14px;
-}
-
-.url-input:focus {
-  outline: none;
-  border-color: #0366d6;
-  box-shadow: 0 0 0 2px rgba(3, 102, 214, 0.2);
-}
-
-.request-actions {
-  display: flex;
-  gap: 8px;
-}
-
-.send-btn, .save-btn {
-  padding: 8px 16px;
-  border: none;
-  border-radius: 4px;
-  font-size: 14px;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  transition: background-color 0.2s;
-}
-
-.send-btn {
-  background-color: #28a745;
-  color: white;
-}
-
-.send-btn:hover {
-  background-color: #218838;
-}
-
-.save-btn {
-  background-color: white;
-  color: #24292e;
-  border: 1px solid #e1e5e9;
-}
-
-.save-btn:hover {
-  background-color: #f6f8fa;
-}
-
-.request-tabs {
-  display: flex;
-  gap: 2px;
-  margin-bottom: 16px;
-}
-
-.tab-btn {
-  padding: 6px 12px;
-  border: none;
-  background: #f6f8fa;
-  border-radius: 4px;
-  font-size: 13px;
-  cursor: pointer;
-  transition: background-color 0.2s;
-}
-
-.tab-btn.active {
-  background: #0366d6;
-  color: white;
-}
-
-.request-body {
-  min-height: 200px;
-}
-
-.section-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-}
-
-.section-title {
-  font-weight: 600;
-  font-size: 14px;
-  color: #24292e;
-}
-
-.add-btn {
-  padding: 4px 8px;
-  border: none;
-  background: none;
-  color: #0366d6;
-  font-size: 13px;
-  cursor: pointer;
-  border-radius: 4px;
-}
-
-.add-btn:hover {
-  background-color: rgba(3, 102, 214, 0.1);
-}
-
-.headers-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.header-row {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-}
-
-.header-input {
-  flex: 1;
-  padding: 6px 10px;
-  border: 1px solid #e1e5e9;
-  border-radius: 4px;
-  font-size: 13px;
-}
-
-.header-input:focus {
-  outline: none;
-  border-color: #0366d6;
-  box-shadow: 0 0 0 2px rgba(3, 102, 214, 0.2);
-}
-
-.remove-btn {
-  width: 24px;
-  height: 24px;
-  border: none;
-  background: #dc3545;
-  color: white;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.remove-btn:hover {
-  background: #c82333;
-}
-
-.body-textarea {
-  width: 100%;
-  height: 150px;
-  padding: 12px;
-  border: 1px solid #e1e5e9;
-  border-radius: 4px;
-  font-family: 'Courier New', monospace;
-  font-size: 13px;
-  resize: vertical;
-}
-
-.body-textarea:focus {
-  outline: none;
-  border-color: #0366d6;
-  box-shadow: 0 0 0 2px rgba(3, 102, 214, 0.2);
-}
-</style>
+<style scoped src="./RequestForm.css"></style>

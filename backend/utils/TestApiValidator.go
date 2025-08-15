@@ -2,7 +2,6 @@ package utils
 
 import (
 	"errors"
-	"net"
 	"net/url"
 )
 
@@ -25,16 +24,16 @@ func ValidateAPIEndpoint(endpoint string) error {
 		return errors.New("localhost:8080 is not allowed")
 	}
 
-	ips, err := net.LookupIP(u.Hostname())
-	if err != nil {
-		return errors.New("failed to resolve hostname")
-	}
+	// ips, err := net.LookupIP(u.Hostname())
+	// if err != nil {
+	// 	return errors.New("failed to resolve hostname")
+	// }
 
-	for _, ip := range ips {
-		if ip.IsLoopback() || ip.IsPrivate() {
-			return errors.New("private or loopback addresses are not allowed")
-		}
-	}
+	// for _, ip := range ips {
+	// 	if ip.IsLoopback() || ip.IsPrivate() {
+	// 		return errors.New("private or loopback addresses are not allowed")
+	// 	}
+	// }
 
 	return nil
 }
