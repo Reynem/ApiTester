@@ -4,13 +4,23 @@ import (
 	"apitester/api"
 	"apitester/database"
 	"fmt"
+	"net/http"
 
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 )
 
 func main() {
 	fmt.Println("API Tester is running...")
 	e := echo.New()
+
+	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowOrigins:     []string{"http://localhost:4200", "http://127.0.0.1:4200"},
+		AllowMethods:     []string{http.MethodGet, http.MethodPost, http.MethodPut, http.MethodDelete, http.MethodOptions},
+		AllowHeaders:     []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, "Authorization"},
+		AllowCredentials: true,
+	}))
+
 	testManagerGroup := e.Group("/api")
 
 	sqliteDB, err := database.InitDatabase()

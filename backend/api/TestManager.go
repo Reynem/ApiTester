@@ -25,7 +25,6 @@ func TestManager(e *echo.Group, repo *database.TestRepository) {
 	e.GET("/tests", h.getAllTests)
 	e.PUT("/tests/:id", h.updateTest)
 	e.DELETE("/tests/:id", h.deleteTest)
-	// e.GET("/tests", listTests)
 }
 
 type Handler struct {
